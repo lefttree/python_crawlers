@@ -11,7 +11,10 @@ import getpass
 import time
 from sys import platform as _platform
 
-cj = http.cookiejar.CookieJar()
+COOKIEFILE = 'cookies.lwp'
+cookiePath = os.path.dirname(os.path.realpath(__file__)) + "/cookie.lwp"
+
+cj = http.cookiejar.LWPCookieJar()
 
 
 def saveFile(data, filename):
@@ -81,6 +84,8 @@ def get_captcha(opener):
 
 def getOpener(head):
     # deal with the Cookies
+    if os.path.isfile(cookiePath):
+        cj.load(cookiePath)
     pro = urllib.request.HTTPCookieProcessor(cj)
     opener = urllib.request.build_opener(pro)
     # urllib.request.install_opener(opener)
@@ -165,6 +170,7 @@ def send_message(opener, account, password, captcha):
     if result['r'] == 0:
         print('登陆成功!')
         print('登陆的账号为：', account)
+        cj.save(cookiePath)
         return True
     else:
         print('登陆失败!')
