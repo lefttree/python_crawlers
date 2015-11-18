@@ -9,6 +9,7 @@ import os
 import json
 import getpass
 import time
+from sys import platform as _platform
 
 cj = http.cookiejar.CookieJar()
 
@@ -63,7 +64,12 @@ def get_captcha(opener):
     f.write(buf.read())
     f.close()
     print('验证码在程序运行的文件夹中，请输入验证码')
-    os.system("gnome-open ./验证码.gif")
+    if _platform == "linux" or _platform == "linux2":
+        os.system("gnome-open ./验证码.gif")
+    elif _platform == "darwin":
+        os.system("open ./验证码.gif")
+    elif _platform == "win32":
+        os.system("验证码.gif")
     captcha_str = input()
     print("输入的验证码为: " + captcha_str)
     return captcha_str
@@ -83,8 +89,7 @@ def getOpener(head):
 
 
 def get_account_password():
-    # account = input()
-    account = "bylixiang@gmail.com"
+    account = input()
     while re.search(r'\w+@[\w\.]{3,}', account) is None:   # 匹配邮箱的正则表达式，可以更完善
         print('抱歉，输入的账号不规范...\n请输入正确的知乎登录邮箱\n')
         print('账号要求：1.必须是正确格式的邮箱\n2.邮箱用户名只能由数字、字母和下划线_构成\n3.@后面必须要有.而且长度至少为3位')
