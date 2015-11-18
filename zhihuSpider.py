@@ -16,7 +16,6 @@ cj = http.cookiejar.CookieJar()
 
 def saveFile(data, filename):
     pageDir = os.path.dirname(os.path.realpath(__file__)) + "/result/"
-    print(pageDir)
     if not os.path.exists(pageDir):
         print("Create new pages directory")
         os.makedirs(pageDir)
@@ -171,6 +170,20 @@ def send_message(opener, account, password, captcha):
         print('登陆失败!')
         return False
 
+def getIndex(opener, url):
+    index = opener.open("http://www.zhihu.com")
+    d = ungzip(index.read())
+    saveFile(d, "index")
+
+def getHotTopic(opener, url):
+    index = opener.open(url)
+    d = ungzip(index.read())
+    saveFile(d, "explore")
+    cer = re.compile('(<a class="question_link".*</a>)', flags=0)
+    strlist = cer.findall(d.decode("utf-8"))
+    for s in strlist:
+        print(s)
+
 def main_start():
 
     head = {
@@ -202,9 +215,9 @@ def main_start():
         confirm = input()
         captcha = get_captcha(opener)
 
-    index = opener.open("http://www.zhihu.com")
-    d = ungzip(index.read())
-    saveFile(d, "index")
+    getIndex(opener, "http://www.zhihu.com")
+    getHotTopic(opener, "http://www.zhihu.com/explore")
+    
 
     # msg = generateMessage(account, password, _xsrf, captcha)
     
