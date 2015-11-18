@@ -53,4 +53,3 @@ if __name__ == "__main__":
     saveFile(data)
     xsrf = getXSRF(data.decode("utf-8"))
     print(xsrf)
-
