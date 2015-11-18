@@ -14,8 +14,13 @@ from sys import platform as _platform
 cj = http.cookiejar.CookieJar()
 
 
-def saveFile(data):
-    save_path = './response.html'
+def saveFile(data, filename):
+    pageDir = os.path.dirname(os.path.realpath(__file__)) + "/result/"
+    print(pageDir)
+    if not os.path.exists(pageDir):
+        print("Create new pages directory")
+        os.makedirs(pageDir)
+    save_path = pageDir + filename + '.html'
     f_obj = open(save_path, 'wb')  # wb 表示打开方式
     f_obj.write(data)
     f_obj.close()
@@ -89,6 +94,13 @@ def getOpener(head):
 
 
 def get_account_password():
+    dirPath = os.path.dirname(os.path.realpath(__file__))
+    accountFile = dirPath + "/accountInfo"
+    if os.path.isfile(accountFile):
+        with open(accountFile, "r") as f:
+            account = f.readline()
+            password = f.readline()
+            return account, password
     account = input()
     while re.search(r'\w+@[\w\.]{3,}', account) is None:   # 匹配邮箱的正则表达式，可以更完善
         print('抱歉，输入的账号不规范...\n请输入正确的知乎登录邮箱\n')
@@ -192,7 +204,7 @@ def main_start():
 
     index = opener.open("http://www.zhihu.com")
     d = ungzip(index.read())
-    saveFile(d)
+    saveFile(d, "index")
 
     # msg = generateMessage(account, password, _xsrf, captcha)
     
