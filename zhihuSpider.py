@@ -14,7 +14,7 @@ cj = http.cookiejar.CookieJar()
 
 
 def saveFile(data):
-    save_path = './response'
+    save_path = './response.html'
     f_obj = open(save_path, 'wb')  # wb 表示打开方式
     f_obj.write(data)
     f_obj.close()
@@ -49,9 +49,9 @@ def make_cookie(name, value, domain):
 
 def ungzip(data):
     try:        # 尝试解压
-        print('正在解压.....')
+        # print('正在解压.....')
         data = gzip.decompress(data)
-        print('解压完毕!')
+        # print('解压完毕!')
     except:
         print('未经压缩, 无需解压')
     return data
@@ -108,14 +108,17 @@ def generateMessage(account, password, _xsrf, captcha=''):
         'rememberme': 'y',
         'captcha': captcha
     }
+    
+    if captcha != '':
+        print("使用验证码登录")
+        postDict['captcha'] = captcha
 
     postData = urllib.parse.urlencode(postDict).encode()
-    print(postData)
     return postData
     
 
 def send_message(opener, account, password, captcha):
-    url = "http://www.zhihu.com/login/email"
+    url = "http://www.zhihu.com"
     url_login = "http://www.zhihu.com/login/email"
 
     op = opener.open(url, timeout=5)
@@ -125,20 +128,14 @@ def send_message(opener, account, password, captcha):
     xsrfCookie = make_cookie(name='_xsrf', value=_xsrf, domain='www.zhihu.com')
     cj.set_cookie(xsrfCookie)
 
-#     if captcha == '':    # 如果没有验证码
-        # loginData = '{0}&email={1}&password={2}'.format(_xsrf, account, password, ) + '&rememberme=y'
-    # else:
-        # loginData = '{0}&email={1}&password={2}&captcha={3}'.format(_xsrf, account, password, captcha) + '&rememberme=y'
-    # loginData = urllib.parse(loginData, safe='=&')
-
     postDict = {
         '_xsrf': _xsrf,
         'email': account,
         'password': password,
-        'rememberme': 'true',
-        'captcha': captcha
+        'rememberme': 'true'
     }
-    msg = urllib.parse.urlencode(postDict).encode()
+
+    msg = generateMessage(account, password, _xsrf, captcha)
 
     try:
         op = opener.open(url_login, msg)
@@ -187,7 +184,10 @@ def main_start():
         print("回车进入获取验证码的流程")
         confirm = input()
         captcha = get_captcha(opener)
-    return 
+
+    index = opener.open("http://www.zhihu.com")
+    d = ungzip(index.read())
+    saveFile(d)
 
     # msg = generateMessage(account, password, _xsrf, captcha)
     
@@ -195,8 +195,3 @@ def main_start():
 if __name__ == "__main__":
     # opener = makeMyOpener()
     main_start()
-    # uop = opener.open('http://www.zhihu.com/', timeout=1000)
-    # data = ungzip(uop.read())
-    # saveFile(data)
-    # # xsrf = getXSRF(data.decode('utf-8'))
-    # get_captcha()
