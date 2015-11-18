@@ -20,3 +20,4 @@
 - [手把手教你用python模拟登录知乎](http://knarfeh.github.io/2015/04/04/%E6%89%8B%E6%8A%8A%E6%89%8B%E6%95%99%E4%BD%A0%E7%94%A8Python%E6%A8%A1%E6%8B%9F%E7%99%BB%E9%99%86%E7%9F%A5%E4%B9%8E/)
 - [zhihuSpider](https://github.com/lining0806/ZhihuSpider/blob/master/ZhihuSpider.py)
 - [zhihu unofficial api library](https://github.com/7sDream/zhihu-py3)
+- [Handling Cookies in Python](http://www.voidspace.org.uk/python/articles/cookielib.shtml#cookies)
