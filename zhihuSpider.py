@@ -8,6 +8,9 @@ import re
 import os
 import json
 import getpass
+import time
+
+cj = http.cookiejar.CookieJar()
 
 
 def saveFile(data):
@@ -22,6 +25,27 @@ def getXSRF(data):
     strlist = cer.findall(data)
     return strlist[0]
 
+def make_cookie(name, value, domain):
+    cookie = http.cookiejar.Cookie(
+        version=0,
+        name=name,
+        value=value,
+        port=None,
+        port_specified=False,
+        domain=domain,
+        domain_specified=True,
+        domain_initial_dot=False,
+        path="/",
+        path_specified=True,
+        secure=False,
+        expires=time.time() + 300000000,
+        discard=False,
+        comment=None,
+        comment_url=None,
+        rest={}
+    )
+    return cookie
+
 
 def ungzip(data):
     try:        # 尝试解压
@@ -33,8 +57,8 @@ def ungzip(data):
     return data
 
 
-def get_captcha():
-    buf = urllib.request.urlopen(u'http://www.zhihu.com/captcha.gif')
+def get_captcha(opener):
+    buf = opener.open(u'http://www.zhihu.com/captcha.gif')
     f = open(u'验证码.gif', 'wb')
     f.write(buf.read())
     f.close()
@@ -47,9 +71,9 @@ def get_captcha():
 
 def getOpener(head):
     # deal with the Cookies
-    cj = http.cookiejar.CookieJar()
     pro = urllib.request.HTTPCookieProcessor(cj)
     opener = urllib.request.build_opener(pro)
+    # urllib.request.install_opener(opener)
     header = []
     for key, value in head.items():
         elem = (key, value)
@@ -59,7 +83,8 @@ def getOpener(head):
 
 
 def get_account_password():
-    account = input()
+    # account = input()
+    account = "bylixiang@gmail.com"
     while re.search(r'\w+@[\w\.]{3,}', account) is None:   # 匹配邮箱的正则表达式，可以更完善
         print('抱歉，输入的账号不规范...\n请输入正确的知乎登录邮箱\n')
         print('账号要求：1.必须是正确格式的邮箱\n2.邮箱用户名只能由数字、字母和下划线_构成\n3.@后面必须要有.而且长度至少为3位')
@@ -89,12 +114,57 @@ def generateMessage(account, password, _xsrf, captcha=''):
     return postData
     
 
+def send_message(opener, account, password, captcha):
+    url = "http://www.zhihu.com/login/email"
+    url_login = "http://www.zhihu.com/login/email"
+
+    op = opener.open(url, timeout=5)
+    data = ungzip(op.read())
+    _xsrf = getXSRF(data.decode("utf-8"))
+    print("_xsrf: ", _xsrf)
+    xsrfCookie = make_cookie(name='_xsrf', value=_xsrf, domain='www.zhihu.com')
+    cj.set_cookie(xsrfCookie)
+
+#     if captcha == '':    # 如果没有验证码
+        # loginData = '{0}&email={1}&password={2}'.format(_xsrf, account, password, ) + '&rememberme=y'
+    # else:
+        # loginData = '{0}&email={1}&password={2}&captcha={3}'.format(_xsrf, account, password, captcha) + '&rememberme=y'
+    # loginData = urllib.parse(loginData, safe='=&')
+
+    postDict = {
+        '_xsrf': _xsrf,
+        'email': account,
+        'password': password,
+        'rememberme': 'true',
+        'captcha': captcha
+    }
+    msg = urllib.parse.urlencode(postDict).encode()
+
+    try:
+        op = opener.open(url_login, msg)
+        data = ungzip(op.read())
+        result = json.loads(data.decode("utf-8"))
+        print("result: " + str(result))
+    except  Exception as error:
+        print(error)
+        return False
+
+    if result['r'] == 0:
+        print('登陆成功!')
+        print('登陆的账号为：', account)
+        return True
+    else:
+        print('登陆失败!')
+        return False
+
 def main_start():
+
     head = {
         'Connection': 'Keep-Alive',
         'Accept': 'text/html, application/xhtml+xml, */*',
         'Accept-Encoding': 'gzip,deflate',  # 主要属性，有此项，知乎认为来源非脚本
         'Accept-Language': 'en-US,en;q=0.8,zh-Hans-CN;q=0.5,zh-Hans;q=0.3',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'Host': 'www.zhihu.com',
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko'
     }
@@ -102,32 +172,25 @@ def main_start():
     head['Origin'] = 'http://www.zhihu.com'
     head['Referer'] = 'http://www.zhihu.com'
 
-    url = "http://www.zhihu.com"
-    url_login = "http://www.zhihu.com/login/email"
+    
     opener = getOpener(head)
     
-    captcha = get_captcha()
-
-    op = opener.open(url, timeout=1000)
-    data = ungzip(op.read())
-    _xsrf = getXSRF(data.decode("utf-8"))
-    print("_xsrf: %s" % (_xsrf, ))
-    print("验证码: %s" % (captcha, ))
-
     print("现在开始登陆，请根据提示输入您的账号密码")
     print('请输入用户名（知乎注册邮箱），回车确认')
     account, password = get_account_password()
     print("account: %s" % (account, ))
     # print "password:", password
 
-    print("获取验证码图片，请准备输入验证码:")
+    captcha = ''
+    while not send_message(opener, account, password, captcha):
+        print("登录失败了")
+        print("回车进入获取验证码的流程")
+        confirm = input()
+        captcha = get_captcha(opener)
+    return 
+
+    # msg = generateMessage(account, password, _xsrf, captcha)
     
-
-    msg = generateMessage(account, password, _xsrf, captcha)
-    op = opener.open(url_login, msg)
-    data = ungzip(op.read())
-
-    print(data.decode('utf-8'))
 
 if __name__ == "__main__":
     # opener = makeMyOpener()
