@@ -67,16 +67,16 @@ def ungzip(data):
 
 def get_captcha(opener):
     buf = opener.open(u'http://www.zhihu.com/captcha.gif')
-    f = open(u'验证码.gif', 'wb')
+    f = open(u'captcha.gif', 'wb')
     f.write(buf.read())
     f.close()
     print('验证码在程序运行的文件夹中，请输入验证码')
     if _platform == "linux" or _platform == "linux2":
-        os.system("gnome-open ./验证码.gif")
+        os.system("gnome-open ./captcha.gif")
     elif _platform == "darwin":
-        os.system("open ./验证码.gif")
+        os.system("open ./captcha.gif")
     elif _platform == "win32":
-        os.system("验证码.gif")
+        os.system("captcha.gif")
     captcha_str = input()
     print("输入的验证码为: " + captcha_str)
     return captcha_str
