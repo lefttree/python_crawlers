@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import urllib.request
-import urllib
 import http.cookiejar
-import gzip
 import re
 import os
-import json
 import getpass
 import time
 from sys import platform as _platform
 # use requests and BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
 
 
 COOKIEFILE = 'cookies.lwp'
@@ -59,20 +56,10 @@ def make_cookie(name, value, domain):
     return cookie
 
 
-def ungzip(data):
-    try:        # 尝试解压
-        # print('正在解压.....')
-        data = gzip.decompress(data)
-        # print('解压完毕!')
-    except:
-        print('未经压缩, 无需解压')
-    return data
-
-
-def get_captcha(opener):
-    buf = opener.open(u'http://www.zhihu.com/captcha.gif')
+def get_captcha(s):
+    r = s.get(u'http://www.zhihu.com/captcha.gif')
     f = open(u'captcha.gif', 'wb')
-    f.write(buf.read())
+    f.write(r.content)
     f.close()
     print('验证码在程序运行的文件夹中，请输入验证码')
     if _platform == "linux" or _platform == "linux2":
@@ -86,19 +73,14 @@ def get_captcha(opener):
     return captcha_str
 
 
-def get_opener(head):
-    # deal with the Cookies
+def get_session(head):
+    s = requests.Session()
+    s.headers = head
+    # load cj from file
     if os.path.isfile(cookiePath):
         cj.load(cookiePath)
-    pro = urllib.request.HTTPCookieProcessor(cj)
-    opener = urllib.request.build_opener(pro)
-    # urllib.request.install_opener(opener)
-    header = []
-    for key, value in head.items():
-        elem = (key, value)
-        header.append(elem)
-    opener.addheaders = header
-    return opener
+    s.cookies = cj
+    return s
 
 
 def get_account_password():
@@ -137,17 +119,17 @@ def generate_message(account, password, _xsrf, captcha=''):
         print("使用验证码登录")
         post_dict['captcha'] = captcha
 
-    post_data = urllib.parse.urlencode(post_dict).encode()
-    return post_data
+    # post_data = urllib.parse.urlencode(post_dict).encode()
+    return post_dict
 
 
-def send_message(opener, account, password, captcha):
+def send_message(s, account, password, captcha):
     url = "http://www.zhihu.com"
     url_login = "http://www.zhihu.com/login/email"
 
-    op = opener.open(url, timeout=5)
-    data = ungzip(op.read())
-    _xsrf = get_xsrf(data.decode("utf-8"))
+    r = s.get(url, timeout=5)
+    data = r.text
+    _xsrf = get_xsrf(data)
     print("_xsrf: ", _xsrf)
     xsrf_cookie = make_cookie(name='_xsrf',
                               value=_xsrf,
@@ -157,9 +139,10 @@ def send_message(opener, account, password, captcha):
     msg = generate_message(account, password, _xsrf, captcha)
 
     try:
-        op = opener.open(url_login, msg)
-        data = ungzip(op.read())
-        result = json.loads(data.decode("utf-8"))
+        op = s.post(url_login, data=msg)
+        # data = op.
+        # result = json.loads(data.decode("utf-8"))
+        result = op.json()
         print("result: " + str(result))
     except Exception as error:
         print(error)
@@ -175,15 +158,15 @@ def send_message(opener, account, password, captcha):
         return False
 
 
-def get_index(opener, url):
-    index = opener.open("http://www.zhihu.com")
-    d = ungzip(index.read())
+def get_index(s, url):
+    r = s.get("http://www.zhihu.com")
+    d = r.content
     save_file(d, "index")
 
 
-def get_hot_topic(opener, url):
-    index = opener.open(url)
-    d = ungzip(index.read())
+def get_hot_topic(s, url):
+    r = s.get(url)
+    d = r.content
     save_file(d, "explore")
     cer = re.compile('(<a class="question_link".*</a>)', flags=0)
     strlist = cer.findall(d.decode("utf-8"))
@@ -207,7 +190,8 @@ def main_start():
     head['Origin'] = 'http://www.zhihu.com'
     head['Referer'] = 'http://www.zhihu.com'
 
-    opener = get_opener(head)
+    # opener = get_opener(head)
+    s = get_session(head)
 
     print("现在开始登陆，请根据提示输入您的账号密码")
     print('请输入用户名（知乎注册邮箱），回车确认')
@@ -216,14 +200,14 @@ def main_start():
     # print "password:", password
 
     captcha = ''
-    while not send_message(opener, account, password, captcha):
+    while not send_message(s, account, password, captcha):
         print("登录失败了")
         print("回车进入获取验证码的流程")
         input()
-        captcha = get_captcha(opener)
+        captcha = get_captcha(s)
 
-    get_index(opener, "http://www.zhihu.com")
-    get_hot_topic(opener, "http://www.zhihu.com/explore")
+    get_index(s, "http://www.zhihu.com")
+    get_hot_topic(s, "http://www.zhihu.com/explore")
 
     # msg = generate_message(account, password, _xsrf, captcha)
 
