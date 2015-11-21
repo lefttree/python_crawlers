@@ -8,24 +8,13 @@ import time
 from sys import platform as _platform
 # use requests and BeautifulSoup
 import requests
+import htmlparser
 from bs4 import BeautifulSoup
-
 
 COOKIEFILE = 'cookies.lwp'
 cookiePath = os.path.dirname(os.path.realpath(__file__)) + "/cookie.lwp"
 
 cj = http.cookiejar.LWPCookieJar()
-
-
-def save_file(data, filename):
-    pagedir = os.path.dirname(os.path.realpath(__file__)) + "/result/"
-    if not os.path.exists(pagedir):
-        print("Create new pages directory")
-        os.makedirs(pagedir)
-    save_path = pagedir + filename + '.html'
-    f_obj = open(save_path, 'wb')  # wb 表示打开方式
-    f_obj.write(data)
-    f_obj.close()
 
 
 def get_xsrf(data):
@@ -158,22 +147,6 @@ def send_message(s, account, password, captcha):
         return False
 
 
-def get_index(s, url):
-    r = s.get("http://www.zhihu.com")
-    d = r.content
-    save_file(d, "index")
-
-
-def get_hot_topic(s, url):
-    r = s.get(url)
-    d = r.content
-    save_file(d, "explore")
-    cer = re.compile('(<a class="question_link".*</a>)', flags=0)
-    strlist = cer.findall(d.decode("utf-8"))
-    for s in strlist:
-        print(s)
-
-
 def main_start():
 
     head = {
@@ -206,8 +179,8 @@ def main_start():
         input()
         captcha = get_captcha(s)
 
-    get_index(s, "http://www.zhihu.com")
-    get_hot_topic(s, "http://www.zhihu.com/explore")
+    htmlparser.get_index(s, "http://www.zhihu.com")
+    htmlparser.get_hot_topic(s, "http://www.zhihu.com/explore")
 
     # msg = generate_message(account, password, _xsrf, captcha)
 
