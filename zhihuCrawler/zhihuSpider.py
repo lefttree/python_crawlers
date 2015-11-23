@@ -6,10 +6,12 @@ import os
 import getpass
 import time
 from sys import platform as _platform
+import pprint
 # use requests and BeautifulSoup
 import requests
 import htmlparser
 from bs4 import BeautifulSoup
+import zhihuDaily
 
 COOKIEFILE = 'cookies.lwp'
 cookiePath = os.path.dirname(os.path.realpath(__file__)) + "/cookie.lwp"
@@ -181,6 +183,14 @@ def main_start():
 
     htmlparser.get_index(s, "http://www.zhihu.com")
     htmlparser.get_hot_topic(s, "http://www.zhihu.com/explore")
+
+    # zhihu daily api should use a non-login session
+    s2 = requests.Session()
+    newsJSON = zhihuDaily.getHotNews(s2)
+    pprint.pprint(newsJSON)
+
+    # sectionList = zhihuDaily.getSectionList(s)
+    # pprint.pprint(sectionList)
 
     # msg = generate_message(account, password, _xsrf, captcha)
 
