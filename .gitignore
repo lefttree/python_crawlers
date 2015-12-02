@@ -2,4 +2,5 @@ accountInfo
 cookie.lwp
 crawler/*
 result/*
-captcha.gif
+*.gif
+*.html
