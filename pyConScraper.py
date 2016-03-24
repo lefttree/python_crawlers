@@ -2,8 +2,8 @@
 Simple python scraper
 """
 import argparse
-import requests
-import bs4
+import requests # made for human api!
+import bs4 # html parser
 import pprint
 import re
 from multiprocessing import Pool
@@ -17,33 +17,39 @@ def get_video_page_urls():
     Get video page urls
     """
     response = requests.get(index_url)
-    soup = bs4.BeautifulSoup(response.text, 'html.parser')
+    soup = bs4.BeautifulSoup(response.text, 'html.parser') # get an soup object, specify html parser
     return [a.attrs.get('href') for a in
-            soup.select('div.col-md-6 a[href^=/video]')]
+            soup.select('div.col-md-6 a[href^=/video]')] # css selector
 
 # pprint.pprint(get_video_page_urls())
 
 
 def get_video_data(video_page_url):
     """
-    Get video page details
+    Get video page details for each page
     - title
     - speaks
     - youtube address
     - views
     - likes
     - dislikes
+    Return:
+        dictionary contains all the info
     """
     video_data = {}
     try:
+        # urls from index page are relative
         response = requests.get(root_url + video_page_url)
         soup = bs4.BeautifulSoup(response.text, 'html.parser')
+        # should use inspector to get all these css classes
+        # select() returns a list
         video_data['title'] = soup.select('div#videobox h3')[0].get_text()
-        video_data['speakers'] = [a.get_text() for a in
+        video_data['speakers'] = [a.get_text().decode('utf-8') for a in
                                   soup.select('div#sidebar a[href^=/speaker]')]
         video_data['youtube_url'] = soup.select(
             'div#sidebar a[href^=http://www.youtube.com]')[0].get_text()
 
+        # get info from youtube page
         response = requests.get(video_data['youtube_url'])
         soup = bs4.BeautifulSoup(response.text, "html.parser")
         video_data['views'] = int(re.sub('[^0-9]', '',
@@ -60,7 +66,9 @@ def get_video_data(video_page_url):
 
 
 def show_video_stats(options):
+    # parallel processing
     pool = Pool(options.workers)
+    # get all the video pages' url
     video_page_urls = get_video_page_urls()
     results = sorted(pool.map(get_video_data, video_page_urls), key=lambda video: video[options.sort] if video else -1,
                      reverse=True)
@@ -72,18 +80,19 @@ def show_video_stats(options):
     else:
         print('View +1 -1 Title (Speakers)')
 
-#     for i in range(max):
-        # if options.csv:
-            # print('"{0}","{1}",{2},{3},{4}'.format(
-                  # results[i]['title'], ', '.join(results[i]['speakers']),
-                  # results[i]['likes'], results[i]['dislikes']))
-        # else:
-            # print('{0:5d} {1:3d} {2:3d} {3} ({4})'.format(
-                # results[i]['views'], results[i]['likes'],
-                # results[i]['dislikes'], results[i]['title'],
-                # results[i]['speakers'][0]))
     for i in range(max):
-        pprint.pprint(results[i])
+        if options.csv:
+            print('"{0}","{1}",{2},{3},{4}'.format(
+                  results[i]['title'], ', '.join(results[i]['speakers']),
+                  results[i]['views'], results[i]['likes'],
+                  results[i]['dislikes']))
+        else:
+            print('{0} {1} {2} {3} ({4})'.format(
+                results[i]['views'], results[i]['likes'],
+                results[i]['dislikes'], results[i]['title'],
+                ', '.join(results[i]['speakers'])))
+#     for i in range(max):
+        # pprint.pprint(results[i])
 
 
 def parse_args():
