@@ -5,6 +5,7 @@ import re
 import os
 import getpass
 import time
+import json
 from sys import platform as _platform
 # use requests and BeautifulSoup
 import requests
@@ -78,6 +79,7 @@ def get_session(head):
     s.headers = head
     # load cj from file
     if os.path.isfile(cookiePath):
+        print("-------already has cookie-------")
         cj.load(cookiePath)
     s.cookies = cj
     return s
@@ -108,6 +110,9 @@ def get_account_password():
 
 
 def generate_message(account, password, _xsrf, captcha=''):
+    """
+    Genrate a dictionary for login post
+    """
     post_dict = {
         '_xsrf': _xsrf,
         'email': account,
@@ -124,6 +129,12 @@ def generate_message(account, password, _xsrf, captcha=''):
 
 
 def send_message(s, account, password, captcha):
+    """
+    Try login with:
+    - account
+    - password
+    - captcha
+    """
     url = "http://www.zhihu.com"
     url_login = "http://www.zhihu.com/login/email"
 
@@ -136,6 +147,7 @@ def send_message(s, account, password, captcha):
                               domain='www.zhihu.com')
     cj.set_cookie(xsrf_cookie)
 
+    # generate login message
     msg = generate_message(account, password, _xsrf, captcha)
 
     try:
@@ -164,8 +176,8 @@ def get_index(s, url):
     save_file(d, "index")
 
 
-def get_hot_topic(s, url):
-    r = s.get(url)
+def get_hot_topic(session, url):
+    r = session.get(url)
     d = r.content
     save_file(d, "explore")
     cer = re.compile('(<a class="question_link".*</a>)', flags=0)
@@ -173,6 +185,12 @@ def get_hot_topic(s, url):
     for s in strlist:
         print(s)
 
+
+def get_latest_news(session, url):
+    r = requests.get(url)
+    objects = r.json()
+    json.dump(objects, os.path.dirname(os.path.realpath(__file__)) + "/result/latest_news")
+    print(objects)
 
 def main_start():
 
@@ -199,6 +217,7 @@ def main_start():
     print("account: %s" % (account, ))
     # print "password:", password
 
+    # should skip the login process if already has cookie
     captcha = ''
     while not send_message(s, account, password, captcha):
         print("登录失败了")
@@ -206,8 +225,9 @@ def main_start():
         input()
         captcha = get_captcha(s)
 
-    get_index(s, "http://www.zhihu.com")
+    # get_index(s, "http://www.zhihu.com")
     get_hot_topic(s, "http://www.zhihu.com/explore")
+    get_latest_news(s, "http://news-at.zhihu.com/api/4/news/latest")
 
     # msg = generate_message(account, password, _xsrf, captcha)
 
